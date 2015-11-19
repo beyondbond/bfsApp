@@ -1,3 +1,4 @@
+// loadPRF-0.22.js
 // GLOBAL VARIABLE
 var urlPath='/scripts/processPMA.1.5.php';
 var dealType=5;
@@ -18,18 +19,20 @@ var prfViewOpts = {
 	enableAddRow: false,
 	enableCellNavigation: true,
 	asyncEditorLoading: false,
+	enableColumnReorder: false,
+	multiColumnSort: true,
 	autoEdit: true
 };
 
 
 var prfViewClx = [
-	{id:"colid",name:"I.D.",field:"colid",toolTip:"Column Number",width:36,cssClass: "cell-title",editor:Slick.Editors.Integer,precision:0},
-	{id:"show",name:"Show",field:"show",toolTip:"Show Header Column",width:60,editor:Slick.Editors.Integer,precision:0,formatter:ynFormatter},
-	{id:"precision",name:"Prc",field:"precision",toolTip:"Decimal Precision",width:60,editor:Slick.Editors.Integer,precision:0,formatter:Slick.Formatters.Round2},
-	{id:"field",name:"Field",field:"field",toolTip:"Header Internal Name",width:100,cssClass:"cell-field",editor:Slick.Editors.Text},
-	{id:"name",name:"Display",field:"name",toolTip:"Header Display Name",width:180,cssClass:"cell-name",editor:Slick.Editors.Text},
-	{id:"toolTip",name:"Description",field:"toolTip",toolTip:"Header Tool Tip",width:292,cssClass:"cell-name",editor:Slick.Editors.Text},
-	{id:"datatype",name:"Datatype",field:"datatype",toolTip:"0:TEXT,1:NUMBER, 2:DATE, 3:YES/NO, 4:TRUE/FALSE, 5:CURRENCY, 6:RevMtge TYPE[0-5]:LoC/Term/Tenure/Modified/Term/ModifiedTenure, 7:CURVE TYPE, 8:RATE TYPE",width:140,editor:Slick.Editors.Integer,precision:0,formatter:rvmDataTypeFormatter}
+	{id:"colid",name:"I.D.",field:"colid",toolTip:"Column Number",width:36,cssClass: "cell-title",editor:Slick.Editors.Integer,precision:0,sortable: true},
+	{id:"show",name:"Show",field:"show",toolTip:"Show Header Column",width:60,editor:Slick.Editors.Integer,precision:0,formatter:ynFormatter,sortable: true},
+	{id:"precision",name:"Prc",field:"precision",toolTip:"Decimal Precision",width:60,editor:Slick.Editors.Integer,precision:0,formatter:Slick.Formatters.Round2,sortable: true},
+	{id:"field",name:"Field",field:"field",toolTip:"Header Internal Name",width:100,cssClass:"cell-field",editor:Slick.Editors.Text,sortable: true},
+	{id:"name",name:"Display",field:"name",toolTip:"Header Display Name",width:180,cssClass:"cell-name",editor:Slick.Editors.Text,sortable: true},
+	{id:"toolTip",name:"Description",field:"toolTip",toolTip:"Header Tool Tip",width:292,cssClass:"cell-name",editor:Slick.Editors.Text,sortable: true},
+	{id:"datatype",name:"Datatype",field:"datatype",toolTip:"0:TEXT,1:NUMBER, 2:DATE, 3:YES/NO, 4:TRUE/FALSE, 5:CURRENCY, 6:RevMtge TYPE[0-5]:LoC/Term/Tenure/Modified/Term/ModifiedTenure, 7:CURVE TYPE, 8:RATE TYPE",width:140,editor:Slick.Editors.Integer,precision:0,formatter:rvmDataTypeFormatter,sortable: true}
 ];
 
 // unfinished reference codes: 
@@ -126,6 +129,23 @@ function createPrfGrid(idname, data, columns, options) {
 //	grid.setSelectionModel(new Slick.CellSelectionModel());
 //  	grid.onCellChange.subscribe(function (e, args) { console.log("Hi"); });
 	$(gridId)[0].style.width=addPixel(grid.getCanvasNode().style.width,15);
+	grid.onSort.subscribe(function (e, args) {
+		var cols = args.sortCols;
+		data.sort(function (dataRow1, dataRow2) {
+			for (var i = 0, l = cols.length; i < l; i++) {
+				var field = cols[i].sortCol.field;
+				var sign = cols[i].sortAsc ? 1 : -1;
+				var value1 = dataRow1[field], value2 = dataRow2[field];
+				var result = (value1 == value2 ? 0 : (value1 > value2 ? 1 : -1)) * sign;
+				if (result != 0) {
+					return result;
+				}
+			}
+			return 0;
+		});
+		grid.invalidate();
+		grid.render();
+	});
 	return grid;
 }
 
