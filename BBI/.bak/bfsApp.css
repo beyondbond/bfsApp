@@ -1,0 +1,178 @@
+.cell-title { font-weight:bold; }
+.cell-effort-driven { text-align:center; }
+.menuBar { position:absolute;margin:0px 2px 0 2px; width:800px; border:solid .0em red;}
+.menuBar ul { margin:0; padding:0; list-style-type:none; text-align:left; }
+.menuBar ul li { display:inline; }
+.menuBar ul li a { padding:.0em .0em; color:#fff; background-color:#111; }
+.menuBar ul li a:hover { color:#fff; background-color:#666; }
+.menuBar table,tr,td { margin:0; padding:0; }
+#separatorMenuBar {margin:5px 5px 5px 5px; width:800px; height:2px; background:darkGreen; }
+#topMenuBar { position:absolute;top:0px; height:40px; }
+#statusInfo { margin:2px 0 0 0;}
+#statusInfo li { padding:0 0 0 2px;font:bold 12pt Helvetica;color:darkGreen;display:block}
+#rvmMenuShort {margin:10px 0 0 0;}
+#rvmMenuShort li {margin:0; padding:0;}
+#rvmMenuShort li a {background:none;padding:1px;}
+#rvmMenuShort li a:hover {border-radius:1px;box-shadow:2px 2px 2px #555;} 
+#mainMenuBar { position:absolute;top:40px; height:30px; width:800px;}
+#mainMenuBar ul { float:right; margin-right:115px;}
+#mainMenuBar ul li { padding:0 0 0 0; }
+#secTabs {margin:0;}
+#secTabs li {margin:0; padding:0;}
+#secTabs li a {font:bold 12pt Helvetica;color:darkGreen;padding:2px 10px; background:none;color:#111; border-radius:5px;box-shadow:3px 3px 0 #555; }
+#secTabs li a:hover {background:#EDFFF0; }
+#separatorMenuBar { top:70px; height:2px; background:darkGreen}
+#tabMenuBar { top:75px; margin:10px 5px 10px 5px;height:30px;}
+#container { top:115px; left:10px;}
+#modalContents { position:absolute;top:315px; left:10px;}
+
+/* General */
+
+BODY, *  {
+  font-size: 14px;
+}
+
+SELECT {
+  font-weight: bold;
+}
+
+th {
+  text-align: center;
+}
+
+
+/*
+[id$=okBtn]{
+  color:darkgreen;
+  background: #efefef;
+  width: 100px;
+  -moz-border-radius: 10px;
+  -webkit-border-radius: 10px;
+  border: 2px solid lightgreen;
+  padding: 2px;
+  font-size:20pt;
+}
+[id$=cancelBtn] {
+  color:darkred;
+  background: #efefef;
+  width: 100px;
+  -moz-border-radius: 10px;
+  -webkit-border-radius: 10px;
+  border: 2px solid salmon;
+  padding: 2px;
+  font-size:20pt;
+}
+*/
+
+/* For slickgrid formatting */
+/*
+.slick-column-name { 
+  white-space: normal;
+  display: table-cell;
+}
+*/
+
+.slick-header-column.ui-state-default {
+  white-space: normal;
+  display: table-cell;
+  height:auto;
+  vertical-align:bottom;
+  text-align: center;
+  background:$efefef;
+  font: bold 12pt Arial;
+}
+
+.ui-widget-content span {
+  font-size: 12pt;
+}
+
+
+/* BOOTSTRAP : Change the Navbar Colors/Font/Size */
+/* Adjust Menu (red) text color, (Garamond) font-family, (1.5em) font-size  */
+.navbar .nav > li > a, .navbar .nav > li > a:first-letter,
+.navbar .nav > li.current-menu-item > a, 
+.navbar .nav > li.current-menu-ancestor > a {
+display:        inline;
+color:          red;                        
+/* font-family:    Garamond; */
+font-size:      16pt;
+padding:        10px 10px;
+}
+ 
+/* Adjust Menu colors - Normal */
+.navbar .nav > li > a, .navbar .nav > li > a:first-letter {
+color:          white;
+text-shadow:    none;
+}
+/* Adjust Menu colors - Hover */
+.navbar .nav > li > a:hover, .navbar .nav > li > a:hover:first-letter { 
+color:          yellow;                      
+text-shadow:    none;
+}
+/* Adjust Menu colors - Active */
+.navbar .nav > li > a:active, .navbar .nav > li > a:active:first-letter,
+.navbar .nav > li.current-menu-item > a, 
+.navbar .nav > li.current-menu-ancestor > a,
+.navbar .nav > li.current-menu-item > a:first-letter, 
+.navbar .nav > li.current-menu-ancestor > a:first-letter {
+color:          salmon;
+text-shadow:    none;
+}
+ 
+/* Adjust dropdown Menu items (blue) text color, (yellow) shading and (green) border */
+.dropdown-menu > li > a {
+color:          blue;
+background:     white;
+border-bottom:  2px solid darkgray;
+font-size:      12pt;
+}
+ 
+/* Remove the Hover/Focus Colors  */
+.navbar .nav > li.current-menu-item > a, .navbar .nav > li.current-menu-ancestor > a, 
+.navbar .nav > li > a:hover, .navbar .nav > li > a:focus {
+color:          lightgreen;
+}
+/* END OF Change the Navbar Colors/Font/Size */
+
+/* SETUP FOR 3 layer submenu */
+.dropdown-submenu {
+    position:relative;
+}
+.dropdown-submenu>.dropdown-menu {
+    top:120%;
+    left:20%;
+    margin-top:-6px;
+    margin-left:-1px;
+    -webkit-border-radius:0 6px 6px 6px;
+    -moz-border-radius:0 6px 6px 6px;
+    border-radius:0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+    display:block;
+}
+.dropdown-submenu>a:after {
+    display:block;
+    content:" ";
+    float:right;
+    width:0;
+    height:0;
+    border-color:transparent;
+    border-style:solid;
+    border-width:5px 0 5px 5px;
+    border-left-color:#cccccc;
+    margin-top:5px;
+    margin-right:-10px;
+}
+.dropdown-submenu:hover>a:after {
+    border-left-color:#ffffff;
+}
+.dropdown-submenu.pull-left {
+    float:none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+    left:-100%;
+    margin-left:10px;
+    -webkit-border-radius:6px 0 6px 6px;
+    -moz-border-radius:6px 0 6px 6px;
+    border-radius:6px 0 6px 6px;
+}
