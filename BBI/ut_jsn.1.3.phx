@@ -1,0 +1,486 @@
+<?php
+error_reporting(E_ALL & ~E_DEPRECATED);
+
+/* 
+A Deal class for all deal input/output with header keys
+class _XPMA 
+example 2.
+require_once('ut_jsn.phx');
+$jsnData=new _XPMA("gnr2011125");
+var_dump($jsnData);
+
+class _XDataMtx  
+A JSON class from column base matrix with header keys
+example 1.
+require_once('ut_jsn.phx');
+$jsnData=new _XDataMtx("head test.psv",0,1,1,"|");
+$jsnData->addDataMtx(0,1);
+$jsnData->addDataMtx(0,0);
+var_dump($jsnData);
+*/
+error_reporting(E_ALL & ~E_DEPRECATED);
+
+class _XPMA {
+
+function _XPMA($dealName,$loginName, $dealType=1,$isCtr=0, &$dealObj=NULL,$zxyDir="/apps/fafa/deals") {
+	$this->getAdminInfo($dealName,$loginName,$isCtr,$zxyDir,$dealType);
+	if($dealObj==NULL) {
+		$this->LoadDeal($dealName);
+	} else { 
+		$this->putDeal($dealObj);
+	}
+}
+
+function getAdminInfo($dealName,$loginName,$isCtr,$zxyDir,$dealType) {
+	$tabName="admin";
+	$tabObjName = $tabName."Info";
+	$appDir = dealType2Txt($dealType);
+	$adminInfo=array();
+	$adminInfo["tabName"]   = $tabName;
+	$adminInfo["tabObjName"]= $tabObjName;
+	$adminInfo["loginName"] =$loginName;
+	$adminInfo["dealName"]  =$dealName;
+	$adminInfo["isCtr"]     =$isCtr;
+	$adminInfo["zxyDir"]    =$zxyDir;
+	$adminInfo["ctrDir"]    ="/apps/fafa/deals/";
+	$adminInfo["appDir"]    =$appDir;
+	$adminInfo["loginDir"]  ="/apps/fafa/vfc/$appDir/$loginName/";
+	$adminInfo["prfDir"]    ="/apps/fafa/vfc/$appDir/$loginName/sys/";
+	$adminInfo["workDir"]   ="/apps/fafa/vfc/$appDir/$loginName/$dealName/";
+	$adminInfo["outDir"]    = $adminInfo["workDir"]."/__output/";
+	if($isCtr) {
+		copyDealDir($dealName,$adminInfo["ctrDir"],$adminInfo["loginDir"]);
+	}
+	$this->{$tabObjName}=$adminInfo;
+}
+
+function putDeal(&$dealObj) {
+	$dirName=$this->adminInfo["workDir"];
+	foreach ($dealObj as $tabObj) { 
+		$tabObj=json_decode(json_encode($tabObj),true);
+		$tabObjName=$tabObj["tabObjName"];
+		if(!strcmp($tabObjName,"adminInfo")) continue;
+		$xpe=$tabObj["rwType"]*10+$tabObj["keyType"];
+		$xret=prnMtx(
+			$tabObj["jsonData"],$tabObj["jsonHeader"], $tabObj["nvar"], $tabObj["nobs"], $tabObj["RawFlg"],
+			$dlmr="\t", $xpe);
+//		$fpname=$dirName.$tabObj["fileName"];
+		$fpname=$tabObj["fpName"];
+		fpWrite($fpname,$xret) ;
+	}
+}
+
+function LoadDeal($dealName) {
+	$dirName=$this->adminInfo["workDir"];
+	$tabList=array(
+		"bnd"=>1,"cln"=>1,"sch"=>1,"dcm"=>1,"gnr"=>0,"rle"=>0,"mxnio.rle"=>0,
+		"dcm.ppy"=>1, "dcm.dft"=>1, "dcm.drw"=>1, "dcm.idx"=>1
+	);
+	foreach ($tabList as $tabName => $dataType) { 
+		$fileName=NULL;
+		$fpName=$this->getFpName($tabName,$dealName,$dirName,$fileName); 
+		$tabName=preg_replace('/\./','_',$tabName);
+		$this->readDealFile($fileName,$fpName,$tabName,$dataType);
+	}
+//
+	$dirName=$this->adminInfo["prfDir"];
+	$tabList=array(
+		"xtsy.dat"=>1, "xindex.dat"=>1
+	);
+	foreach ($tabList as $tabName => $dataType) { 
+		$fileName=$tabName;
+		$fpName=sprintf("%s%s",$dirName,$fileName);
+		$tabName=preg_replace('/\./','_',$tabName);
+		$this->readDealFile($fileName,$fpName,$tabName,$dataType);
+	}
+//
+}
+
+function getFpName($tabName,$dealName,$dirName,&$fileName) {
+	if($fileName==NULL) {
+		$fileName=sprintf("%s.%s",$dealName,$tabName);
+	} 
+	$fpName=sprintf("%s%s",$dirName,$fileName);
+	return $fpName;
+}
+
+function readDealFile($fileName,$fpName,$tabName,$dataType=0) {
+	if(!($fp=@fopen($fpName,"r"))) return 0;
+	else fclose($fp);
+	$tabObjName = $tabName."_OBJ";
+	$this->{$tabObjName}["tabName"]=$tabName;
+	$this->{$tabObjName}["tabObjName"]=$tabObjName;
+	$this->{$tabObjName}["fileName"]=$fileName;
+	$this->{$tabObjName}["fpName"]=$fpName;
+	switch($dataType) {
+	case 1: // grid table by column
+		$fpObj = new _XDataMtx($fpName,0,1,0,"\t");
+		$this->{$tabObjName}["jsonData"]=$fpObj->Data01;
+		$this->{$tabObjName}["jsonHeader"]=$fpObj->HdrList;
+		break;
+	case -1: // text blob
+		$fpObj=new _XDataMtx($fpname,0,1,0,"",$dataType,"");
+		$this->{$tabObjName}['jsonData']=$jsnData->DataRaw;
+		$jsonObj['jsonHeader']=array("C_0");
+		break;
+	default:
+	case 0: // rows of text
+		$fpObj = new _XDataMtx($fpName,0,1,0,"",0,"\n","",0);
+		$this->{$tabObjName}["jsonData"]=$fpObj->StrVec;
+		$this->{$tabObjName}["jsonHeader"]=array("C_0");
+		break;
+	}
+	$this->{$tabObjName}["RawFlg"]=$fpObj->RawFlg;
+	$this->{$tabObjName}["nobs"]=$fpObj->nobs;
+	$this->{$tabObjName}["nvar"]=$fpObj->nvar;
+	$this->{$tabObjName}["dataType"]=$fpObj->dataType;
+	$this->{$tabObjName}["rwType"]=$fpObj->rwType;
+	$this->{$tabObjName}["keyType"]=$fpObj->keyType;
+	return(1);
+}
+
+} // END OF _XPMA
+
+// Create a ROW/COLUMN class matrix "Data{rwType}{keyType}" from column base matrix with header keys "HdrList"
+// Use addDataMtx($rwType,$keyType) to add addional output data "Data{rwType}{keyType}"
+class _XDataMtx { 
+
+function _XDataMtx(
+$fname, 
+$rwType=0,	// output matrix format [0,1]: by [row| col] 
+$keyType=1,	// output matrix format [0,1]: [w/out| with header key 
+$inMethod=0,	// input method for fname [0,1,2,3]: [filename| system comand| string array | string ] 
+$dlmr="\t",	// delimiter between column
+$fhdr=1,	// first row header key flag [0,1]: [no|yes]
+$d2="\n",	// delimiter between row
+$d3='#',	// row commentized delimiter 
+$RawFlg=1	// Add additional RawId count column [0,1]: [no|yes]
+) {
+	$this->fname=$fname;
+ 	$this->rwType=$rwType;
+ 	$this->keyType=$keyType;
+	$this->inMethod=$inMethod;
+ 	$this->dlmr=$dlmr;
+	$this->fhdr=$fhdr;
+	$this->d2=$d2;
+	$this->d3=$d3;
+ 	$this->RawFlg=$RawFlg; 
+//	$this->HdrList;     // List of Keys
+//	$this->DataRaw;
+//	$this->Data00;	// To get ROW/JSON type of data w/out Key associated
+//	$this->Data01;	// To get ROW/JSON type of data with  Key associated
+//	$this->Data10;
+//	$this->Data11;  // To get COLUMN type of data with key associated 
+//	$this->dataType; // output matrix format [0,1]: [rows of text] / [2D grid matrix]
+	$this->nvar=$this->getDataMtx(); // numbers of KEYS
+	$this->errmsg='';
+}
+
+function writeDataMtx($rwType,$keyType,$fpname) {
+	$xpe=$rwType*10+$keyType;
+	$dname=sprintf("%s%02d","this->Data",$xpe);
+	$xret=prnMtx(
+		${$dname},$this->HdrList,
+		$this->nvar, $this->nobs, $this->RawFlg, $this->dlmr, $xpe);
+	fpWrite($fpname,$xret) ;
+}
+
+function addDataMtx($rwType,$keyType) {
+	if($this->DataRaw == NULL) return NULL;
+ 	$this->rwType=$rwType;
+ 	$this->keyType=$keyType;
+	$mtx=array();
+	$hdr=$this->HdrList;
+	for($j=0;$j<$this->nobs;$j++) {
+		$xi=$this->DataRaw[$j];
+		$this->asgMtx($xi,$j,$this->RawFlg,$hdr,$mtx,$this->rwType,$this->keyType);
+	}
+	$xData="Data".$this->rwType.$this->keyType;
+	if($this->{$xData} == NULL) 
+		$this->{$xData}=$mtx;
+	return $this->{$xData};
+}
+
+function getDataMtx() {
+	$StrVec=getStrVec($this->inMethod,$this->fname,$this->d2);
+	$fhdr=$this->fhdr;
+	$nd3=strlen($this->d3);
+	$hdr=array();
+	$mtx=array();
+	$mtxRaw=array();
+	$nx=count($StrVec);
+	$this->StrVec=$StrVec;
+	if($this->dlmr==NULL) {
+		$this->nobs=$nx;
+		$this->HdrList=array("C_0");
+		$this->DataRaw=$StrVec;
+		$this->nobs=$nx;
+		$this->dataType=0;
+		return 1;
+	}
+	for($j=$jx=0;$jx<$nx;$jx++) {
+		if(skip_str($StrVec[$jx],$this->d3,$nd3)) {
+			continue;
+		}
+		$xi=strParse($this->dlmr, $StrVec[$jx],0);
+		if($fhdr>=0) { 
+			$hdr=$this->asgHeader($xi,$j,$this->RawFlg,$fhdr);
+			if($this->fhdr>0) continue;
+		}
+		$this->asgMtx($xi,$j,$this->RawFlg,$hdr,$mtx,$this->rwType,$this->keyType);
+		$mtxRaw[$j]=$xi;
+		$j++;
+	}
+	$this->HdrList=$hdr;
+	$this->DataRaw=$mtxRaw;
+	$xData="Data".$this->rwType.$this->keyType;
+	$this->{$xData}=$mtx;
+	$this->nobs=$j;
+	$this->dataType=1;
+	return count($hdr);
+}
+
+function asgMtx($xi,$j,$RawFlg,&$hdr,&$mtx,$rwType,$keyType) {
+	$xpe=$rwType*10+$keyType;
+	switch($xpe) {
+		case  0: $this->asgMtx_00($xi,$j,$RawFlg,$hdr,$mtx); break;
+		case  1: $this->asgMtx_01($xi,$j,$RawFlg,$hdr,$mtx); break;
+		case 10: $this->asgMtx_10($xi,$j,$RawFlg,$hdr,$mtx); break;
+		default:
+		case 11: $this->asgMtx_11($xi,$j,$RawFlg,$hdr,$mtx); break;
+	}
+}
+
+//$rwType=0,	// output matrix format [0,1]: by [row| col] 
+//$keyType=0,	// output matrix format [0,1]: [w/out| with header key 
+function asgMtx_00($xi,$j,$RawFlg,&$hdr,&$mtx)
+{
+	$Ncol=count($xi);
+	for($i=0;$i<$Ncol;$i++) {
+		$mtx[$j][$i]=$xi[$i];
+	}
+	if($RawFlg) $mtx[$j][$Ncol]=$j;
+}
+		
+//$rwType=1,	// output matrix format [0,1]: by [row| col] 
+//$keyType=0,	// output matrix format [0,1]: [w/out| with header key 
+function asgMtx_10($xi,$j,$RawFlg,&$hdr,&$mtx)
+{
+	$Ncol=count($xi);
+	for($i=0;$i<$Ncol;$i++) {
+		$mtx[$i][$j]=$xi[$i];
+	}
+	if($RawFlg) $mtx[$Ncol][$j]=$j;
+}
+		
+//$rwType=1,	// output matrix format [0,1]: by [row| col] 
+//$keyType=1,	// output matrix format [0,1]: [w/out| with header key 
+function asgMtx_11($xi,$j,$RawFlg,&$hdr,&$mtx)
+{
+	$Ncol=count($xi);
+	for($i=0;$i<$Ncol;$i++) {
+		$mtx[$hdr[$i]][$j]=$xi[$i];
+	}
+	if($RawFlg) $mtx['RawId'][$j]=$j;
+}
+		
+//$rwType=0,	// output matrix format [0,1]: by [row| col] 
+//$keyType=1,	// output matrix format [0,1]: [w/out| with header key 
+function asgMtx_01($xi,$j,$RawFlg,&$hdr,&$mtx)
+{
+	$Ncol=count($xi);
+	for($i=0;$i<$Ncol;$i++) {
+		$mtx[$j][$hdr[$i]]=$xi[$i];
+	}
+	if($RawFlg) $mtx[$j]['RawId']=$j;
+}
+		
+function asgHeader($xi,$j,$RawFlg,&$fhdr)
+{	
+	$fhdr=-1;
+	$Ncol=count($xi);
+	if($fhdr) {
+		for($i=0;$i<$Ncol;$i++) { $hdr[$i]=$xi[$i]; }
+	} else {
+		for($i=0;$i<$Ncol;$i++) { $hdr[$i]='C_'.$i; }
+	}
+	if($RawFlg) $hdr[]='RawId';
+	return $hdr;
+}
+
+} // END _XDataMtx 
+
+
+// $inMethod=0,	// input method for fname [0,1,2,3]: [filename| system comand| string array | string ] 
+function getStrVec($inMethod,$fname,$d2) 
+{
+	switch($inMethod) {
+		case  3: 
+			$StrVec=$fname; 
+			break;
+		case  1: 
+			$xin=`$fname`; 
+			$StrVec=strParse($d2, $xin);
+			break;
+		case  4: 
+			$xin=$fname; 
+			$StrVec=strParse($d2, $xin);
+			break;
+		case  0: 
+		default: 
+			$xin=fpRead($fname); 
+			$StrVec=strParse($d2, $xin);
+			break;
+	}
+	return($StrVec);
+}
+
+function skip_str($xin,$dlmr,$n) {
+	if(trim($xin)==NULL) return(1);
+	if(!strncmp($xin,$dlmr,$n)) return(1);
+	return(0);
+}
+
+function strParse($dlmr,$xin,$flg=0) {
+	$ret=strParseRaw($dlmr,$xin,$flg=0) ;
+	foreach($ret as $key) $rtt[]=trim($key);
+	return $rtt;
+}
+
+function strParseRaw($dlmr,$xin,$flg=0) {
+	switch($flg) {
+	case 2:
+		$dlmr='/'.stripslashes($dlmr).'/';
+		return(preg_split($dlmr,trim($xin)));
+	case 1:
+		return(explode($dlmr, $xin));
+	case 0:
+		return(str_getcsv($xin,$dlmr));
+	}
+}
+
+// parse $d2 first then $dlmr
+function txtParseD2($xin,$dlmr,$d2) {
+	if($d2==NULL) 
+		if($dlmr==NULL) 
+			return($xin);
+		return(strParse($dlmr, $xin));
+	if($dlmr==NULL) 
+		return(strParse($d2, $xin));
+	if(strnatcmp(phpversion(),"5.3")<0) 
+		txtParseD2OLD($xin,$dlmr,$d2);
+	$ret = array_map (
+ 		function ($_) {return strParse (dlmr, $_);},
+		strParse ($d2, $xin)
+	);
+	return($ret);
+		       
+}
+
+function txtParseD2OLD($xin,$dlmr,$d2) {
+	$outerARR = strParse($d2, $xin);
+	$ret = array();
+	foreach ($outerARR as $arrvalue){
+		$innerarr = strParse(dlmr, $arrvalue);
+		$ret[] = $innerarr;
+	}
+	return($ret);
+}
+
+function fpRead($fname,$sz=1048576,$frw="r") {
+	$xin='';
+	if(!($fp=@fopen($fname,$frw))) return $xin;
+	while(!feof($fp)) {
+		$xin.=fread($fp,$sz);
+	}
+	fclose($fp);
+	return $xin;
+}
+
+function fpWrite($fname,$xout) {
+	if(($fp=fopen($fname,"w"))) {
+		fwrite($fp,$xout);
+		fclose($fp);
+		return 0;
+	}
+	return 1;
+}
+
+function mtxObjWrite($dlmr="\t",$tabobj,$fpname="") {
+	if(strlen(fpname)<1) {
+		$fpname=$tabObj["fpName"];
+	}
+	$xpe=$tabObj["rwType"]*10+$tabObj["keyType"];
+	$xret=prnMtx(
+		$tabObj["jsonData"],$tabObj["jsonHeader"],
+		$tabObj["nvar"], $tabObj["nobs"], $tabObj["RawFlg"], $dlmr, $xpe);
+	fpWrite($fpname,$xret) ;
+}
+
+function prnMtx($mtx,$hdr,$Ncol,$Nrow,$RawFlg=1,$dlmr="\t",$xpe) {
+	$outStr='';
+	$vfmt=array();
+	$vDcmFlg=array();
+	if($RawFlg==1) {
+		$Ncol-=1;
+		for($i=0;$i<$Ncol;$i++) {
+			$xij=$hdr[$i];
+			$fmt="%s";
+			$fmt .= ($i==$Ncol-1)?"\n":$dlmr;
+			$outStr.=sprintf($fmt,$xij);
+//			$vDcmFlg[$i]=(strlen($hdr[$i])>7 && substr($hdr[$i],3,4)=="ScnX")?1:0;
+		}
+	}
+	if(!is_array($mtx[0]))$xpe=-1;
+	for($j=0;$j<$Nrow;$j++) {
+		for($i=0;$i<$Ncol;$i++) {
+			switch($xpe) {
+			case 11: $xij=$mtx[$hdr[$i]][$j]; break;
+			case 01: $xij=$mtx[$j][$hdr[$i]]; break;
+			case 10: $xij=$mtx[$i][$j]; break;
+			case 00: $xij=$mtx[$j][$i]; break;
+			case -1: $xij=$mtx[$j]; break;
+			}
+			if($j==0) {
+/*				if($vDcmFlg[$i]==1) {
+					$vfmt[$i]='"%s"';
+				} else 
+*/				if(is_numeric($xij)) {
+					$vfmt[$i]="%.11g";
+				} else {
+					if($xpe==-1) 
+						$vfmt[$i]='%s';
+					else
+						$vfmt[$i]='"%s"';
+				}
+			}
+			$fmt = $vfmt[$i];
+			$fmt .= ($i==$Ncol-1)?"\n":$dlmr;
+			$outStr.=sprintf($fmt,$xij);
+		}
+	}
+	return $outStr;
+}
+
+function copyDealDir($dealName,$ctrDir,$loginDir) {
+	$srcDeal=$ctrDir.$dealName;
+	$desDeal=$loginDir.Dir.$dealName;
+	duplicateDeal($desDeal,$srcDeal);
+}
+
+function duplicateDeal($desDeal,$srcDeal) {
+	$xcmd="rm -rf $desDir; cp -pr $srcDir $desDir";	
+	$ret=`$xcmd`;
+}
+
+function dealType2Txt($dealType) {
+	switch($dealType) {
+		case 1: return "rmbs";
+		case 5: return "rvm";
+		case 3: return "cmbs";
+		case 6: return "mf";
+	}
+	return "pma";
+}
+?>
+

@@ -1,0 +1,457 @@
+<?php
+require_once('/apps/fafa/phx/ut_jsn.1.3.phx');
+// process PMA action 
+function PMA_action() {
+	$debugPMA  = 0;
+	$actionFlg = "PMA_err";
+	$callback  = "";
+	$loginName = "ted";
+	$dataType  = -1;
+	$egflg     = 6;
+	$Scenario  = "1,2,3,4,5";
+	$dealName  = "ghcmarmpool";
+	$dealFrom  = "";
+	$extName   = "";
+	$prfName   = "";
+	$fileName  = "";
+	$dirName   = "";
+	$fullName  = "";
+	$dealType  = 5;
+	$isCtr     = 0;
+	extract($_GET, EXTR_OVERWRITE);
+	if(is_numeric($actionFlg)) { // for OLD backward compatible numeric actionFlg call 
+		PMA_actionOLD($debugPMA,$actionFlg,$callback,$loginName,$dataType,$egflg,$Scenario,$dealName,$dealFrom,$extName,$prfName,$fileName,$dirName,$fullName,$dealType,$isCtr);
+		return(2);
+	}
+	if(function_exists($actionFlg)) {  // action execution
+		$actionFlg($debugPMA,$actionFlg,$callback,$loginName,$dataType,$egflg,$Scenario,$dealName,$dealFrom,$extName,$prfName,$fileName,$dirName,$fullName,$dealType,$isCtr);
+		return(1);
+	}
+	if($actionFlg!="PMA_err") { // error returning code
+		PMA_err($debugPMA,$actionFlg,$callback,$loginName,$dataType,$egflg,$Scenario,$dealName,$dealFrom,$extName,$prfName,$fileName,$dirName,$fullName,$dealType,$isCtr);
+	}
+	return(0);
+}
+
+function PMA_err($debugPMA,$actionFlg,$callback,$loginName,$dataType,$egflg,$Scenario,$dealName,$dealFrom,$extName,$prfName,$fileName,$dirName,$fullName,$dealType,$isCtr) {
+	if ($debugPMA==1) {
+		var_export(get_defined_vars());
+	}
+	$retMsg="404:".$actionFlg." Not Found";
+	echo X_encodeMsg($callback,$retMsg);
+}
+
+// Save & Run PMA model
+function PMA_loginChk($debugPMA,$actionFlg,$callback,$loginName,$dataType,$egflg,$Scenario,$dealName,$dealFrom,$extName,$prfName,$fileName,$dirName,$fullName,$dealType,$isCtr) {
+	require_once("/apps/fafa/phx/ut_login.phx");
+	if($_POST) {
+	$recMsg = @file_get_contents("php://input");
+	} else {
+	$recMsg = '{"username":"ted","password":"absmod","loginStatus":1}';
+	}
+	$loginInfo = @json_decode($recMsg);
+	$loginFlg=1;
+	$logoutFlg=0;
+	$userLX= $loginInfo->username;
+	$passLX= $loginInfo->password;
+	$flgLX= $loginInfo->loginStatus;
+	if($flgLX==-1) { $logoutFlg=1; }
+	$vr=loginCheck($loginFlg,$logoutFlg,$userLX,$passLX);
+	echo X_encodeMsg($callback,$vr);
+}
+
+// Excute Shell
+function PMA_shellCmd($debugPMA,$actionFlg,$callback,$loginName,$dataType,$egflg,$Scenario,$dealName,$dealFrom,$extName,$prfName,$fileName,$dirName,$fullName,$dealType,$isCtr) {
+	$vCmd=array("ls","cat","type","head","tail");
+	$loginDir=" /apps/fafa/vfc/".dealType2Txt($dealType)."/{$loginName}/";
+	$extName=trim($extName);
+	list($xCmd)=preg_split("/\s+/",$extName);
+	if(in_array($xCmd, $vCmd)) {
+		$shellCmd=$extName.$loginDir.$fileName;
+		$ret=`$shellCmd 2>&1`;
+	} else {
+		$ret="401:".$actionFlg." Unauthorized";
+	}
+	echo X_encodeMsg($callback,$ret,JSON_NUMERIC_CHECK,0); // un-encoded plain text
+}
+
+// Get Deal List
+function PMA_getDealList($debugPMA,$actionFlg,$callback,$loginName,$dataType,$egflg,$Scenario,$dealName,$dealFrom,$extName,$prfName,$fileName,$dirName,$fullName,$dealType,$isCtr) {
+	if($isCtr > 0) {
+		$shellCmd="ls -F /apps/fafa/deals| grep / | cut -d/ -f1 | grep gnr";
+	} else {
+		$shellCmd="ls /apps/fafa/vfc/".dealType2Txt($dealType)."/{$loginName} | grep -v sys";
+	}
+	$flist=`$shellCmd 2>&1`;
+	$ret=explode("\n",$flist);
+	echo X_encodeMsg($callback,$ret); 
+}
+
+function PMA_deleteDeal($debugPMA,$actionFlg,$callback,$loginName,$dataType,$egflg,$Scenario,$dealName,$dealFrom,$extName,$prfName,$fileName,$dirName,$fullName,$dealType,$isCtr) {
+	$dirName="/apps/fafa/vfc/".dealType2Txt($dealType)."/${loginName}/${dealName}/";
+	$flist=`rm -rf $dirName 2>&1`;
+	PMA_getDealList($debugPMA,$actionFlg,$callback,$loginName,$dataType,$egflg,$Scenario,$dealName,$dealFrom,$extName,$prfName,$fileName,$dirName,$fullName,$dealType,$isCtr);
+}
+
+function PMA_saveAsDeal($debugPMA,$actionFlg,$callback,$loginName,$dataType,$egflg,$Scenario,$dealName,$dealFrom,$extName,$prfName,$fileName,$dirName,$fullName,$dealType,$isCtr) {
+	if(strlen($dealFrom)<1) $dealFrom=$dealName;
+	if(strcmp($dealFrom,$dealName)) {
+		$dirName="/apps/fafa/vfc/".dealType2Txt($dealType)."/${loginName}/${dealName}/";
+		$dirFrom="/apps/fafa/vfc/".dealType2Txt($dealType)."/${loginName}/${dealFrom}/";
+		$appDir=dealType2Txt($dealType);
+		$shellCmd="/apps/fafa/bin/sh_newDeal login=$loginName appDir=$appDir dealName=$dealName dealFrom=$dealFrom";
+		$flist=`$shellCmd 2>&1`;
+	}
+	PMA_saveDeal($debugPMA,$actionFlg,$callback,$loginName,$dataType,$egflg,$Scenario,$dealName,$dealFrom,$extName,$prfName,$fileName,$dirName,$fullName,$dealType,$isCtr);
+	// get up-to-date dealList
+	PMA_getDealList($debugPMA,$actionFlg,$callback,$loginName,$dataType,$egflg,$Scenario,$dealName,$dealFrom,$extName,$prfName,$fileName,$dirName,$fullName,$dealType,$isCtr);
+}
+
+// Save & Run PMA model
+function PMA_saveDeal($debugPMA,$actionFlg,$callback,$loginName,$dataType,$egflg,$Scenario,$dealName,$dealFrom,$extName,$prfName,$fileName,$dirName,$fullName,$dealType,$isCtr) {
+
+	$recMsg = file_get_contents("php://input");
+	$dealData = json_decode($recMsg);
+	if($dealData) {
+		$dealName=$dealData->adminInfo->dealName;
+		$loginName=$dealData->adminInfo->loginName;
+	} else {
+		return(-1);
+	}
+
+	// Execute program with your data
+	$dealInput=new _XPMA($dealName,$loginName,$dealType,0,$dealData);
+	return(0);
+}
+
+function PMA_runDeal($debugPMA,$actionFlg,$callback,$loginName,$dataType,$egflg,$Scenario,$dealName,$dealFrom,$extName,$prfName,$fileName,$dirName,$fullName,$dealType,$isCtr) {
+	//  Response $replyMsg
+	header("Content-type: application/json");
+	$retMsg=X_runDeal($callback,$loginName,$dealName,$dealType,$prfName,$dealType,$egflg,$Scenario);
+	echo X_encodeMsg($callback,$retMsg);
+}
+
+// Response output *.prn and list of output files
+function PMA_getOutputList($debugPMA,$actionFlg,$callback,$loginName,$dataType,$egflg,$Scenario,$dealName,$dealFrom,$extName,$prfName,$fileName,$dirName,$fullName,$dealType,$isCtr) {
+	$retMsg=X_getOutputList($callback,$loginName,$dealName,$dealType,$prfName,$dealType,$egflg,$Scenario);
+	echo X_encodeMsg($callback,$retMsg);
+}
+
+
+function PMA_saveNrunDeal($debugPMA,$actionFlg,$callback,$loginName,$dataType,$egflg,$Scenario,$dealName,$dealFrom,$extName,$prfName,$fileName,$dirName,$fullName,$dealType,$isCtr) {
+	PMA_saveDeal($debugPMA,$actionFlg,$callback,$loginName,$dataType,$egflg,$Scenario,$dealName,$dealFrom,$extName,$prfName,$fileName,$dirName,$fullName,$dealType,$isCtr);
+	PMA_runDeal($debugPMA,$actionFlg,$callback,$loginName,$dataType,$egflg,$Scenario,$dealName,$dealFrom,$extName,$prfName,$fileName,$dirName,$fullName,$dealType,$isCtr);
+}
+
+// Get Deal from Db location
+function PMA_getDbDeal($debugPMA,$actionFlg,$callback,$loginName,$dataType,$egflg,$Scenario,$dealName,$dealFrom,$extName,$prfName,$fileName,$dirName,$fullName,$dealType,$isCtr) {
+	$ret='[""]';
+	if($isCtr < 1) {
+		echo $ret;
+	}
+	$shellCmd="cp -pr /apps/fafa/deals/{$dealName} /apps/fafa/vfc/".dealType2Txt($dealType)."/{$loginName};";
+	$shellCmd.="ls /apps/fafa/vfc/".dealType2Txt($dealType)."/{$loginName} | grep {$dealName}";
+	$flist=`$shellCmd 2>&1`;
+	$retMsg=explode("\n",$flist);
+	echo X_encodeMsg($callback,$retMsg);
+}
+
+function PMA_newDeal($debugPMA,$actionFlg,$callback,$loginName,$dataType,$egflg,$Scenario,$dealName,$dealFrom,$extName,$prfName,$fileName,$dirName,$fullName,$dealType,$isCtr) {
+// copy deal from _NEW 
+		$dirName="/apps/fafa/vfc/".dealType2Txt($dealType)."/${loginName}/${dealName}/";
+		$dealFrom="_NEW";
+		$appDir=dealType2Txt($dealType);
+		$shellCmd="/apps/fafa/bin/sh_newDeal login=$loginName appDir=$appDir dealName=$dealName dealFrom=$dealFrom";
+		$flist=`$shellCmd 2>&1`;
+PMA_getDeal($debugPMA,$actionFlg,$callback,$loginName,$dataType,$egflg,$Scenario,$dealName,$dealFrom,$extName,$prfName,$fileName,$dirName,$fullName,$dealType,$isCtr) ;
+	// get up-to-date dealList
+	// PMA_getDealList($debugPMA,$actionFlg,$callback,$loginName,$dataType,$egflg,$Scenario,$dealName,$dealFrom,$extName,$prfName,$fileName,$dirName,$fullName,$dealType,$isCtr);
+}
+
+// Get initial Deal info
+function PMA_getDeal($debugPMA,$actionFlg,$callback,$loginName,$dataType,$egflg,$Scenario,$dealName,$dealFrom,$extName,$prfName,$fileName,$dirName,$fullName,$dealType,$isCtr) {
+	$dealData=new _XPMA($dealName,$loginName,$dealType,$isCtr);
+	echo X_encodeMsg($callback,$dealData);
+}
+
+// Response CashFlow file
+function PMA_getCfs($debugPMA,$actionFlg,$callback,$loginName,$dataType,$egflg,$Scenario,$dealName,$dealFrom,$extName,$prfName,$fileName,$dirName,$fullName,$dealType,$isCtr) {
+	$dataType= -1;
+	$flg=X_getDataFile($callback,$loginName,$dealName,$dealType,$prfName,$dataType,$dirName,$fileName,$fullName); 
+	if(!$flg) {
+		$shellCmd="/apps/fafa/bin/sh_pma login=$loginName Deal=$dealName dealType=$dealType outCleanFlg=0 $prfName";
+		$flist=`$shellCmd 2>&1`;
+		X_getDataFile($callback,$loginName,$dealName,$dealType,$prfName,$dataType,$dirName,$fileName,$fullName); 
+	}
+}
+
+// Get __report List
+function PMA_getRptList($debugPMA,$actionFlg,$callback,$loginName,$dataType,$egflg,$Scenario,$dealName,$dealFrom,$extName,$prfName,$fileName,$dirName,$fullName,$dealType,$isCtr) {
+	if(strlen($extName)<1) $extName='.pdf';
+	$dirName="/apps/fafa/vfc/".dealType2Txt($dealType)."/${loginName}/${dealName}/__report";
+	$shellCmd="(cd $dirName && ls *${extName} )";
+	$flist=`$shellCmd 2>/dev/null`;
+	$retMsg=explode("\n",trim($flist));
+	echo X_encodeMsg($callback,$retMsg);
+}
+
+// Get Asm List
+function PMA_getAsmList($debugPMA,$actionFlg,$callback,$loginName,$dataType,$egflg,$Scenario,$dealName,$dealFrom,$extName,$prfName,$fileName,$dirName,$fullName,$dealType,$isCtr) {
+	if(strlen($extName)<1) $extName=".vec.*";
+	$dirName="/apps/fafa/vfc/".dealType2Txt($dealType)."/${loginName}/sys/";
+	$shellCmd="(cd $dirName && ls *${extName} ) | gawk -F. '{printf(\"%s:%s\\n\",$1,$0);}'";
+	$flist=`$shellCmd 2>&1`;
+	$retMsg=explode("\n",trim($flist));
+	echo X_encodeMsg($callback,$retMsg);
+}
+
+function PMA_deleteAsm($debugPMA,$actionFlg,$callback,$loginName,$dataType,$egflg,$Scenario,$dealName,$dealFrom,$extName,$prfName,$fileName,$dirName,$fullName,$dealType,$isCtr) {
+	$fullName="/apps/fafa/vfc/".dealType2Txt($dealType)."/${loginName}/sys/$fileName";
+	$flist=`rm -rf "$fullName" 2>&1`;
+	PMA_getAsmList($debugPMA,$actionFlg,$callback,$loginName,$dataType,$egflg,$Scenario,$dealName,$dealFrom,$extName,$prfName,$fileName,$dirName,$fullName,$dealType,$isCtr);
+}
+
+function PMA_getAsm($debugPMA,$actionFlg,$callback,$loginName,$dataType,$egflg,$Scenario,$dealName,$dealFrom,$extName,$prfName,$fileName,$dirName,$fullName,$dealType,$isCtr) {
+	$dirName="/apps/fafa/vfc/".dealType2Txt($dealType)."/${loginName}/sys/";
+	X_getDataFile($callback,$loginName,$dealName,$dealType,$prfName,$dataType,$dirName,$fileName,$fullName); 
+}
+
+function PMA_getDataTable($debugPMA,$actionFlg,$callback,$loginName,$dataType,$egflg,$Scenario,$dealName,$dealFrom,$extName,$prfName,$fileName,$dirName,$fullName,$dealType,$isCtr) {
+	$dirX="/apps/fafa/vfc/".dealType2Txt($dealType)."/${loginName}/".${dirName}."/";
+	X_getDataFile($callback,$loginName,$dealName,$dealType,$prfName,$dataType,$dirX,$fileName,$fullName); 
+}
+
+
+function PMA_saveAsm($debugPMA,$actionFlg,$callback,$loginName,$dataType,$egflg,$Scenario,$dealName,$dealFrom,$extName,$prfName,$fileName,$dirName,$fullName,$dealType,$isCtr) {
+	$dirName="/apps/fafa/vfc/".dealType2Txt($dealType)."/${loginName}/sys/";
+	if(strlen($fullName)<1) $fullName= $dirName.$fileName;
+	PMA_saveFile($debugPMA,$actionFlg,$callback,$loginName,$dataType,$egflg,$Scenario,$dealName,$dealFrom,$extName,$prfName,$fileName,$dirName,$fullName,$dealType,$isCtr);
+	PMA_getAsmList($debugPMA,$actionFlg,$callback,$loginName,$dataType,$egflg,$Scenario,$dealName,$dealFrom,$extName,$prfName,$fileName,$dirName,$fullName,$dealType,$isCtr);
+}
+
+// Get Prf List
+function PMA_getPrfList($debugPMA,$actionFlg,$callback,$loginName,$dataType,$egflg,$Scenario,$dealName,$dealFrom,$extName,$prfName,$fileName,$dirName,$fullName,$dealType,$isCtr) {
+	if(strlen($extName)<1) $extName=".prf.*";
+	$dirName="/apps/fafa/vfc/".dealType2Txt($dealType)."/${loginName}/sys/";
+	$shellCmd="(cd $dirName && ls *${extName} ) | grep -v ^__ | gawk -F. '{print $1,\":\",$0}'";
+	$flist=`$shellCmd 2>&1`;
+	$retMsg=explode("\n",$flist);
+	echo X_encodeMsg($callback,$retMsg);
+}
+
+function PMA_deletePrf($debugPMA,$actionFlg,$callback,$loginName,$dataType,$egflg,$Scenario,$dealName,$dealFrom,$extName,$prfName,$fileName,$dirName,$fullName,$dealType,$isCtr) {
+	$dirName="/apps/fafa/vfc/".dealType2Txt($dealType)."/${loginName}/sys/";
+	$fullName=$dirName.$fileName;
+	$flist=`rm -rf "$fullName" 2>&1`;
+	PMA_getPrfList($debugPMA,$actionFlg,$callback,$loginName,$dataType,$egflg,$Scenario,$dealName,$dealFrom,$extName,$prfName,$fileName,$dirName,$fullName,$dealType,$isCtr);
+}
+
+function PMA_getPrf($debugPMA,$actionFlg,$callback,$loginName,$dataType,$egflg,$Scenario,$dealName,$dealFrom,$extName,$prfName,$fileName,$dirName,$fullName,$dealType,$isCtr) {
+	$dirName="/apps/fafa/vfc/".dealType2Txt($dealType)."/${loginName}/sys/";
+	$fullName=$dirName.$fileName;
+	$xName= $dirName."__LAST".$extName;
+	if(!strcmp($xName,$fullName) && !file_exists($fullName)) {
+		$xName= "/apps/fafa/vfc/".dealType2Txt($dealType)."/system/sys/__LAST".$extName;
+		$shellCmd="cp -p $xName $fullName";
+		$xtmp=`$shellCmd 2>&1`;
+	}
+	PMA_getRawFile($debugPMA,$actionFlg,$callback,$loginName,$dataType,$egflg,$Scenario,$dealName,$dealFrom,$extName,$prfName,$fileName,$dirName,$fullName,$dealType,$isCtr);
+}
+
+function PMA_savePrf($debugPMA,$actionFlg,$callback,$loginName,$dataType,$egflg,$Scenario,$dealName,$dealFrom,$extName,$prfName,$fileName,$dirName,$fullName,$dealType,$isCtr) {
+	$dirName="/apps/fafa/vfc/".dealType2Txt($dealType)."/${loginName}/sys/";
+	$fullName= $dirName.$fileName;
+	PMA_saveRawFile($debugPMA,$actionFlg,$callback,$loginName,$dataType,$egflg,$Scenario,$dealName,$dealFrom,$extName,$prfName,$fileName,$dirName,$fullName,$dealType,$isCtr);
+	$xName= $dirName."__LAST".$extName;
+	if(strcmp($xName,$fullName)) {
+		$shellCmd="cp -p $fullName $xName";
+		$xtmp=`$shellCmd 2>&1`;
+	}
+	PMA_getPrfList($debugPMA,$actionFlg,$callback,$loginName,$dataType,$egflg,$Scenario,$dealName,$dealFrom,$extName,$prfName,$fileName,$dirName,$fullName,$dealType,$isCtr);
+}
+
+function PMA_getXTSY($debugPMA,$actionFlg,$callback,$loginName,$dataType,$egflg,$Scenario,$dealName,$dealFrom,$extName,$prfName,$fileName,$dirName,$fullName,$dealType,$isCtr) {
+	$dirName="/apps/fafa/vfc/".dealType2Txt($dealType)."/${loginName}/sys/";
+	$fileName= "xtsy.dat";
+	$shellCmd=sprintf("cp -p /apps/fafa/deals/%s %s%s",$fileName,$dirName,$fileName);
+	$ret=`$shellCmd 2>&1`;
+	X_getDataFile($callback,$loginName,$dealName,$dealType,$prfName,$dataType,$dirName,$fileName,$fullName); 
+}
+
+function PMA_getXINDEX($debugPMA,$actionFlg,$callback,$loginName,$dataType,$egflg,$Scenario,$dealName,$dealFrom,$extName,$prfName,$fileName,$dirName,$fullName,$dealType,$isCtr) {
+	$dirName="/apps/fafa/vfc/".dealType2Txt($dealType)."/${loginName}/sys/";
+	$fileName= "xindex.dat";
+	$shellCmd=sprintf("cp -p /apps/fafa/deals/%s %s%s",$fileName,$dirName,$fileName);
+	$ret=`$shellCmd 2>&1`;
+	X_getDataFile($callback,$loginName,$dealName,$dealType,$prfName,$dataType,$dirName,$fileName,$fullName); 
+}
+
+// decode Json data & Save data file 
+function PMA_saveFile($debugPMA,$actionFlg,$callback,$loginName,$dataType,$egflg,$Scenario,$dealName,$dealFrom,$extName,$prfName,$fileName,$dirName,$fullName,$dealType,$isCtr) {
+	$recMsg = file_get_contents("php://input");
+//	$recMsg = '{"jsonData":[0,0.54545,1.09091,1.63636,2.18182],"jsonHeader":"newTst"}';
+	$dataObj = json_decode($recMsg,true);
+	if($dataObj==NULL) return(-1);
+	$xout=sprintf("%s\n",$dataObj["jsonHeader"]);
+	foreach($dataObj["jsonData"]  as $jd) {
+		$xout.=sprintf("%-11.11g\n",$jd);
+	}
+	if(($fp=fopen($fullName,"w"))) {
+		fwrite($fp,$xout);
+		fclose($fp);
+	}
+	return(0);
+//	echo json_encode($ret,JSON_NUMERIC_CHECK);
+}
+
+// Get raw data file 
+function PMA_getRawFile($debugPMA,$actionFlg,$callback,$loginName,$dataType,$egflg,$Scenario,$dealName,$dealFrom,$extName,$prfName,$fileName,$dirName,$fullName,$dealType,$isCtr) {
+	$shellCmd="cat $fullName";
+	$ret=`$shellCmd 2>&1`;
+	echo X_encodeMsg($callback,$ret,JSON_NUMERIC_CHECK,0); // un-encoded plain text
+}
+
+// Save raw data file 
+function PMA_saveRawFile($debugPMA,$actionFlg,$callback,$loginName,$dataType,$egflg,$Scenario,$dealName,$dealFrom,$extName,$prfName,$fileName,$dirName,$fullName,$dealType,$isCtr) {
+	$xout = file_get_contents("php://input");
+	if( strlen($xout)>0 && ($fp=fopen($fullName,"w"))) {
+		fwrite($fp,$xout);
+		fclose($fp);
+	}
+	return(0);
+}
+
+function PMA_exportFile($debugPMA,$actionFlg,$callback,$loginName,$dataType,$egflg,$Scenario,$dealName,$dealFrom,$extName,$prfName,$fileName,$dirName,$fullName,$dealType,$isCtr) {
+	$dirName="/apps/fafa/vfc/".dealType2Txt($dealType)."/${loginName}/${dealName}/";
+	$fullName=$dirName.$extName;
+	$shellCmd="cat $fullName";
+	$ret=`$shellCmd 2>&1`;
+	addDnHdr(basename($fullName).".csv");
+	echo $ret; 
+}
+
+function PMA_exportCln($debugPMA,$actionFlg,$callback,$loginName,$dataType,$egflg,$Scenario,$dealName,$dealFrom,$extName,$prfName,$fileName,$dirName,$fullName,$dealType,$isCtr) {
+	$dirName="/apps/fafa/vfc/".dealType2Txt($dealType)."/${loginName}/${dealName}/";
+	$fullName=$dirName.$dealName.".cln";
+	PMA_getRawFile($debugPMA,$actionFlg,$callback,$loginName,$dataType,$egflg,$Scenario,$dealName,$dealFrom,$extName,$prfName,$fileName,$dirName,$fullName,$dealType,$isCtr);
+}
+
+function PMA_actionOLD($debugPMA,$actionFlg,$callback,$loginName,$dataType,$egflg,$Scenario,$dealName,$dealFrom,$extName,$prfName,$fileName,$dirName,$fullName,$dealType,$isCtr) {
+	switch($actionFlg) {
+		case  1: PMA_getDeal($debugPMA,$actionFlg,$callback,$loginName,$dataType,$egflg,$Scenario,$dealName,$dealFrom,$extName,$prfName,$fileName,$dirName,$fullName,$dealType,$isCtr);break;
+		case  2: PMA_saveNrunDeal($debugPMA,$actionFlg,$callback,$loginName,$dataType,$egflg,$Scenario,$dealName,$dealFrom,$extName,$prfName,$fileName,$dirName,$fullName,$dealType,$isCtr);break;
+		case  3: PMA_getCfs($debugPMA,$actionFlg,$callback,$loginName,$dataType,$egflg,$Scenario,$dealName,$dealFrom,$extName,$prfName,$fileName,$dirName,$fullName,$dealType,$isCtr);break;
+		case  4: PMA_getDealList($debugPMA,$actionFlg,$callback,$loginName,$dataType,$egflg,$Scenario,$dealName,$dealFrom,$extName,$prfName,$fileName,$dirName,$fullName,$dealType,$isCtr);break;
+		case  5: PMA_getXTSY($debugPMA,$actionFlg,$callback,$loginName,$dataType,$egflg,$Scenario,$dealName,$dealFrom,$extName,$prfName,$fileName,$dirName,$fullName,$dealType,$isCtr);break;
+		case  6: PMA_getXINDE($debugPMA,$actionFlg,$callback,$loginName,$dataType,$egflg,$Scenario,$dealName,$dealFrom,$extName,$prfName,$fileName,$dirName,$fullName,$dealType,$isCtr);break;
+		case  7: PMA_getAsm($debugPMA,$actionFlg,$callback,$loginName,$dataType,$egflg,$Scenario,$dealName,$dealFrom,$extName,$prfName,$fileName,$dirName,$fullName,$dealType,$isCtr);break;
+		case 17: PMA_saveAsm($debugPMA,$actionFlg,$callback,$loginName,$dataType,$egflg,$Scenario,$dealName,$dealFrom,$extName,$prfName,$fileName,$dirName,$fullName,$dealType,$isCtr);break;
+		case 18: PMA_deleteAsm($debugPMA,$actionFlg,$callback,$loginName,$dataType,$egflg,$Scenario,$dealName,$dealFrom,$extName,$prfName,$fileName,$dirName,$fullName,$dealType,$isCtr);break;
+		case  8: PMA_getAsmList($debugPMA,$actionFlg,$callback,$loginName,$dataType,$egflg,$Scenario,$dealName,$dealFrom,$extName,$prfName,$fileName,$dirName,$fullName,$dealType,$isCtr);break;
+		case 11: PMA_saveDeal($debugPMA,$actionFlg,$callback,$loginName,$dataType,$egflg,$Scenario,$dealName,$dealFrom,$extName,$prfName,$fileName,$dirName,$fullName,$dealType,$isCtr);break;
+		case 12: PMA_runDeal($debugPMA,$actionFlg,$callback,$loginName,$dataType,$egflg,$Scenario,$dealName,$dealFrom,$extName,$prfName,$fileName,$dirName,$fullName,$dealType,$isCtr);break;
+		case 15: PMA_saveAsDeal($debugPMA,$actionFlg,$callback,$loginName,$dataType,$egflg,$Scenario,$dealName,$dealFrom,$extName,$prfName,$fileName,$dirName,$fullName,$dealType,$isCtr);break;
+		case 16: PMA_deleteDeal($debugPMA,$actionFlg,$callback,$loginName,$dataType,$egflg,$Scenario,$dealName,$dealFrom,$extName,$prfName,$fileName,$dirName,$fullName,$dealType,$isCtr);break;
+		case 87: PMA_saveFile($debugPMA,$actionFlg,$callback,$loginName,$dataType,$egflg,$Scenario,$dealName,$dealFrom,$extName,$prfName,$fileName,$dirName,$fullName,$dealType,$isCtr);break;
+		case 100: PMA_loginChk($debugPMA,$actionFlg,$callback,$loginName,$dataType,$egflg,$Scenario,$dealName,$dealFrom,$extName,$prfName,$fileName,$dirName,$fullName,$dealType,$isCtr);break;
+	}
+}
+
+function X_debugPrn($debugPMA) {
+	return(0);
+}
+
+// Response output *.prn and list of output files
+function X_runDeal($callback,$loginName,$dealName,$dealType,$prfName,$dealType,$egflg,$Scenario) {
+
+	$shellCmd="/apps/fafa/bin/sh_pma login=$loginName Deal=$dealName dealType=$dealType $prfName";
+	$flist=`$shellCmd 2>&1`;
+	$ret=X_getOutputList($callback,$loginName,$dealName,$dealType,$prfName,$dealType,$egflg,$Scenario);
+	return $ret;
+}
+
+// Response output *.prn and list of output files
+function X_getOutputList($callback,$loginName,$dealName,$dealType,$prfName,$dealType,$egflg,$Scenario) {
+	$shellCmd="ls /apps/fafa/vfc/".dealType2Txt($dealType)."/{$loginName}/{$dealName}/__output";
+	$flist=`$shellCmd`;
+	$ret=explode("\n",$flist);
+	return $ret;
+}
+
+
+// Example,
+// X_readFile("callback","/apps/fafa/deals/xtsy.dat",1)
+// X_readFile("callback","/apps/fafa/vfc/".dealType2Txt($dealType)."/ted/sys/xtsy.dat",1)
+function X_readFile($callback,$fullName,$dataType) {
+	switch($dataType) {
+	case 1: // read tabular data
+		$jsnData=new _XDataMtx($fullName,0,1,0,"\t");
+		$jsonObj['jsonHeader']=$jsnData->HdrList;
+		$jsonObj['jsonData']=$jsnData->Data01;
+		break;
+	case 0: // rows of text
+		$jsnData=new _XDataMtx($fullName,0,1,0,"",$dataType,"\n","",0);
+		$jsonObj['jsonHeader']=array("C_0");
+		$jsonObj['jsonData']=$jsnData->StrVec;
+		break;
+	default:
+	case -1: // text blob
+		$jsnData=new _XDataMtx($fullName,0,1,0,"",$dataType,"");
+		$jsonObj['jsonHeader']=$jsnData->HdrList;
+		$jsonObj['jsonData']=$jsnData->DataRaw;
+		break;
+	}
+	$jsonObj['dataType']=$dataType;
+	$jsonObj['fpName']=$jsnData->fname;
+	$jsonObj["RawFlg"]=$jsnData->RawFlg;
+	$jsonObj["nobs"]=$jsnData->nobs;
+	$jsonObj["nvar"]=$jsnData->nvar;
+	$jsonObj["dataType"]=$jsnData->dataType;
+	$jsonObj["rwType"]=$jsnData->rwType;
+	$jsonObj["keyType"]=$jsnData->keyType;
+	echo X_encodeMsg($callback,$jsonObj);
+}
+
+function X_encodeMsg($callback,$retMsg,$options=JSON_NUMERIC_CHECK,$encodeFlg=1) {
+	$callback=trim($callback);
+	if($encodeFlg>0) {
+		$ret = json_encode($retMsg,$options);
+	} else {
+//		$ret = '"'.addslashes($retMsg,$options).'"';
+		$ret= ($retMsg);
+	}
+//	if(strlen($callback)>0) 
+		$ret= $callback . '(' . $ret . ');';
+	return($ret);
+}
+
+function X_getDataFile($callback,$loginName,$dealName,$dealType,$prfName,$dataType,$dirName,$fileName,$fullName) {
+	if(strlen($dirName)<1)
+		$dirName="/apps/fafa/vfc/".dealType2Txt($dealType)."/${loginName}/${dealName}/__output/";
+	$ext=substr($fileName,-3);
+	if(!strcmp($ext,"cfs") || !strcmp($ext,"pyt") || !strcmp($ext,"dat")
+		|| !strcmp($ext,"pst") 
+		|| !strcmp($ext,"vec") 
+		|| !strcmp($ext,"bnd") || !strcmp($ext,"cln") || !strcmp($ext,"sch")) 
+		$dataType= 1;
+
+	if(strlen($fullName)<1) $fullName= $dirName.$fileName;
+	if(file_exists($fullName)) {
+		X_readFile($callback,$fullName,$dataType) ;
+		return(1);
+	} 
+	return(0);
+}
+
+function X_getAppDir($dealType){ return dealType2Txt($dealType); }
+
+function addDnHdr($fileName="xtmp.csv",$type="csv") {
+	$vtype=array('gif'=>'image','png'=>'image','jpg'=>'image','jpeg'=>'image','pdf'=>'application', 'mpeg'=>'audio','mp3'=>'audio','html'=>'text','plain'=>'text', 'csv'=>'application','xls'=>'application');
+	$type = strtolower($type);
+	$ctype=($vtype[$type])?$vtype[$type]:"text";
+	$ct="Content-Type: ".$type."/".$ctype;
+	header($ct);
+	header('Content-Disposition: attachment; filename="' . $fileName . '"');
+}
+
+?>
