@@ -1,0 +1,93 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+	<title>BB Preference Setup</title>
+	<script type="text/javascript" src="/scripts/codemirror.js"></script>
+	<script type="text/javascript" src="/scripts/underscore-min.js"></script>
+	<script type="text/javascript" src="/scripts/csvjson.min.js"></script>
+	<script type="text/javascript" src="/scripts/SlickGrid/lib/jquery-1.7.min.js"></script>
+	<script src="/scripts/SlickGrid/lib/jquery-ui-1.8.16.custom.min.js"></script>
+	<script src="/scripts/SlickGrid/lib/jquery.event.drag-2.0.min.js"></script>
+	<script src="/scripts/SlickGrid/lib/firebugx.js"></script>
+	<script src="/scripts/SlickGrid/slick.core.js"></script>
+	<script src="/scripts/SlickGrid/slick.dataview.js"></script>
+	<script src="/scripts/SlickGrid/slick.formatters.js"></script>
+	<script src="/scripts/SlickGrid/slick.editors.js"></script>
+	<script src="/scripts/SlickGrid/slick.grid.js"></script>
+	<script src="/scripts/SlickGrid/slick.groupitemmetadataprovider.js"></script>
+	<script src="/scripts/SlickGrid/slick.remotemodel.js"></script>
+	<script src="/scripts/SlickGrid/plugins/slick.autotooltips.js"></script>
+	<script src="/scripts/SlickGrid/plugins/slick.cellrangedecorator.js"></script>
+	<script src="/scripts/SlickGrid/plugins/slick.cellrangeselector.js"></script>
+	<script src="/scripts/SlickGrid/plugins/slick.cellselectionmodel.js"></script>
+	<script src="/scripts/SlickGrid/plugins/slick.cellexternalcopymanager.js"></script>
+	<script src="/scripts/BBI/loadPRF-1.6.js"></script>
+	<link rel="stylesheet" href="/scripts/SlickGrid/slick.grid.css" type="text/css"/>
+	<link rel="stylesheet" href="/scripts/SlickGrid/css/smoothness/jquery-ui-1.8.16.custom.css" type="text/css"/>
+	<link rel="stylesheet" href="/scripts/SlickGrid/examples/examples.css" type="text/css"/>
+	<link rel="stylesheet" href="/scripts/BBI/bfsApp.css" type="text/css"/>
+</head>
+<body style="background:#C7C7C7; " >
+<div id="prfViewTable">
+<style>
+	#prfViewTable ul {  margin: 0; padding: .2em; list-style-type: none; text-align: left; }
+	#prfViewTable ul li { display: inline; }
+	#prfViewTable ul li a { font-size:20px; padding: .2em .3em; color: #fff; background-color: #000; }
+	#prfViewTable ul li a:hover { color: #ccc ; }
+	#prfViewTable table,tr,td { margin: 0; padding: 0; }
+</style>
+<TABLE style="margin:5px;" >
+<TR>
+<TD> <select size=4 style="width:300px" id="prfList" onChange="asgViewName();"> </select> </TD>
+<TD>
+<ul id="prfViewMenu" >
+<li><a id="loadLink" >Load</a></li>
+<li><a id="applyLink" >Apply</a></li>
+<li><a id="deleteLink"   >Delete</a></li>
+<li><a id="saveLink"  >Save</a></li>
+<li><a id="closeLink" >Close</a></li>
+</ul>
+<BR>
+&nbsp;&nbsp OR SaveAs: &nbsp;&nbsp;<input Id="saveViewName" type="text" size=43>
+</TD></TR> 
+</TABLE>
+<div id="prfViewGrid" style="width:890px;height:500px;"> </div>
+</div>
+
+<script>
+
+// GLOBAL VARIABLE
+var prf_id = "prfViewGrid";
+var gridId = "#"+prf_id;
+var selectFieldName='prfList';
+var saveFieldName='saveViewName';
+var prfN="cln";
+var appN="prfView_cln";
+var loginName="ted";
+var currName=prfN;
+
+function loadRvmEnv() {
+	appN=getURLvariable('appName'); 
+	currName=prfN=getURLvariable('prfName'); 
+	loginName=getURLvariable('loginName'); 
+	dealType=getURLvariable('dealType'); 
+}
+
+$(function() {
+	loadRvmEnv();
+	if(appN.length<1) {return(-1);}
+	RUN_getPrfList("PMA_getPrfList",loginName);
+	$('ul#prfViewMenu li a').click(function(e){saveAsAppName(e.target.id.replace("Link",""));});
+	if(window.opener!=null && window.opener.prfBas!=null) { // check parent window
+		var data=window.opener.prfBas[prfN];
+		prfData=prfClone(data);
+		loadPrfGrid(prf_id,prfN,prfData);
+		prfHdrL=window.opener.prfHdr[prfN];
+	} else { 
+		RUN_getPrf("PMA_getPrf",loginName,"__LAST",prfN);
+	}
+});
+</script>
+</body>
+</html>
