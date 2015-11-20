@@ -71,6 +71,8 @@ var options = {
 	enableAddRow: false,
 	enableCellNavigation: true,
 	asyncEditorLoading: false,
+	enableColumnReorder: true,
+	multiColumnSort: true,
 	autoEdit: autoEditFlg
 };
 var pyt1st_PRICE={"name":"Price","width":122,"id":"PRICE","field":"PRICE","cssClass":"cell-title","precision":3,"datatype":0,"show":1,"colid":0};
@@ -753,6 +755,7 @@ function colAsg(hdr,data,idname) {
 			precision : 4,
 			datatype : 0,
 			show : 1,
+			sortable: true,
 			editor: Slick.Editors.Text
 			}
 			obj["colid"]=i; obj["colnew"]=0;
@@ -990,6 +993,25 @@ function GridTbl(idName,tblObj) {
 	}
 	if($(gridId)[0]) { $(gridId)[0].style.width ="800px"; }
 	grid = new Slick.Grid(gridId, data, col, options);
+	grid.onSort.subscribe(function (e, args) {
+		var cols = args.sortCols;
+		var data=args.grid.getData();
+		var grid=args.grid;
+		data.sort(function (dataRow1, dataRow2) {
+			for (var i = 0, l = cols.length; i < l; i++) {
+				var field = cols[i].sortCol.field;
+				var sign = cols[i].sortAsc ? 1 : -1;
+				var value1 = dataRow1[field], value2 = dataRow2[field];
+				var result = (value1 == value2 ? 0 : (value1 > value2 ? 1 : -1)) * sign;
+				if (result != 0) {
+					return result;
+				}
+			}
+			return 0;
+		});
+		grid.invalidate();
+		grid.render();
+	});
 /*
 	grid.onAddNewRow.subscribe(function (e, args) {
 		var item = args.item;
@@ -999,22 +1021,12 @@ function GridTbl(idName,tblObj) {
 		grid.render();
 	});
 */
-
-	grid.setSelectionModel(new Slick.CellSelectionModel());
-
-//	grid.registerPlugin(new Slick.CellExternalCopyManager());
-	PageGrid[idName]=grid;
-	PagePrf[idName]=grid.getColumns(); 
-
-
 	grid.onCellChange.subscribe(function (e, args) {
 		xlist=args.grid.getColumns();
 		colname=xlist[args.cell].name;
 		ret=colname + "[" + args.row + "," + args.cell + "] = ";
 		ret = ret + args.item[colname] ;
 	 });
-
-
 	grid.onContextMenu.subscribe(function (e,args) {
 		e.preventDefault();
 		$("#contextMenu")
@@ -1030,8 +1042,6 @@ function GridTbl(idName,tblObj) {
 			$("#contextMenu").hide();
 		});
 	});
-
-
 /*
 	grid.onKeyDown.subscribe(function (e, args) {
 		if(e.which==86 && e.ctrlKey) {
@@ -1041,15 +1051,31 @@ function GridTbl(idName,tblObj) {
 
 	});
 */
+
+	grid.setSelectionModel(new Slick.CellSelectionModel());
+//	grid.registerPlugin(new Slick.CellExternalCopyManager());
+	PageGrid[idName]=grid;
+	var xcol=grid.getColumns(); 
+	if(idName=="cln" || idName=="bnd") {
+		$.map(xcol,function(x,i){x.sortable=true;})
+	}
+	PagePrf[idName]=xcol;
 	adjGridCanvasWidth(idName,gridId); 
 	PageGrid[idName].setColumns(PagePrf[idName]);
 }
 
+/*
+1. $(gridId)[0].style.width should be limited to "1000px"
+2. $(gridId+" .slick-viewport")[0].style.height should be "120px" less then $(gridId)
+3. $(gridId+" .slick-viewport")[0].style.overflow="auto"
+4. $(gridId+" .slick-viewport")[0].style.width=$(gridId)[0].style.width
+Ted, Fri Nov 20 01:43:07 EST 2015
+*/
 function adjGridCanvasWidth(idName,gridId) {
-	if(parseFloat(PageGrid[idName].getCanvasNode().style.width) > parseFloat($(gridId).css("width"))+10)
-		$(gridId)[0].style.width=addPixel(PageGrid[idName].getCanvasNode().style.width,15);
-	else
-		$(gridId)[0].style.width=PageGrid[idName].getCanvasNode().style.width;
+//	if(parseFloat(PageGrid[idName].getCanvasNode().style.width) > parseFloat($(gridId).css("width"))-5)
+//		$(gridId)[0].style.width=addPixel(PageGrid[idName].getCanvasNode().style.width,20);
+//	else
+		$(gridId)[0].style.width=addPixel(PageGrid[idName].getCanvasNode().style.width,20);
 }
 
 function addPixel(origPx,addPx) {
@@ -1774,4 +1800,3 @@ return {
 
 		this.init();
 }
-

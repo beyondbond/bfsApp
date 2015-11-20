@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>ACE in Action</title>
+<style type="text/css" media="screen">
+	#txtEdit,#txtRaw { 
+		position: relative;
+	width:800px;
+	height:500px;
+	overflow:auto;
+		top: 10px;
+		right: 0;
+		bottom: 0;
+		left: 0;
+	}
+</style>
+<script src="/scripts/jquery-2.1.1.min.js" type="text/javascript" charset="utf-8"></script>
+<script type="text/javascript" src="/scripts/ace/ace.js" charset="utf-8"></script>
+</head>
+<body>
+
+<input id=saveExit type=button value="Save and Exit">
+<hr>
+<div id="txtEdit">
+#-----------------------------------------------------------------#
+#- (C) Copyright Beyondbond, Inc.								-#
+#-----------------------------------------------------------------#
+SEQ[$,A,B,C,D,E,F,G];
+WATERFALL[$,(A,IOP,IOW),B,C,D,E,F,G];
+NOTIONALIO[IOP, (A,B)];
+NOTIONALIO[IOW, (C,D,E,F,G)];
+</div>
+
+<script>
+/*
+<h2> Raw Text:
+<input type=button value="Click to Refresh" onClick='$("#txtRaw").val(txtAce.getSession().getValue());'>
+</h2>
+<TEXTAREA id=txtRaw ></TEXTAREA>
+*/
+	
+function getUrlParameter(sParam) {
+	var sPageURL = decodeURIComponent(window.location.search.substring(1)),
+		sURLVariables = sPageURL.split('&'), sParameterName, i;
+	for (i = 0; i < sURLVariables.length; i++) {
+		sParameterName = sURLVariables[i].split('=');
+		if (sParameterName[0] === sParam) {
+			return sParameterName[1] === undefined ? true : sParameterName[1];
+		}
+	}
+}
+
+window.onload = function() {
+	txtAce = ace.edit("txtEdit");
+	txtAce.setTheme("ace/theme/sqlserver");
+	txtAce.getSession().setMode("ace/mode/python");
+	txtAce.$blockScrolling=Infinity;
+	var idName=getUrlParameter("grid");
+	var wdt=getUrlParameter("width");
+	var hgt=getUrlParameter("height");
+	if(wdt!=null) $("#txtEdit").css("width",wdt);
+	if(hgt!=null) $("#txtEdit").css("height",hgt);
+	if(window.opener!=null && idName!=null) {
+		eleName="#"+idName+"Grid";
+		var xval=$(eleName,opener.document).val();
+		txtAce.getSession().setValue(xval);
+		$("#saveExit").click(function() {
+	 		$(eleName,opener.document).val(txtAce.getSession().getValue(xval));
+			window.opener.ele2jsonData_text(eleName);
+			window.close();
+		});
+	} else {
+		$("#saveExit").click(function() {
+			window.close();
+		});
+	}
+};
+</script>
+</body>
+</html>

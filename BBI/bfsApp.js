@@ -115,16 +115,13 @@ function rvmMenuSetup(actN) {
 			break;
 		case 'rptOpt': $.blockUI({message:$("#rptOptBox"),css:{"left":"10%","top":"100px","width":"auto","height":"auto"}});
 			break;
-
 		case 'gnrDeal': $("#dealID").val(currDealName);
-			document.getElementById("gnrTmp").value=
-			document.getElementById("gnrGrid").value;
-			$.blockUI({message:$("#gnrDealBox"),css:{"left":"10%","top":"100px","width":"auto","height":"auto"}});
+			dealEditorWin=window.open("_editorPop.htm?grid=gnr&width=600px&height=400px",'Deal Editor',
+			'resizable=yes,menubar=0,titlebar=1,status=0,width=650,height=540');
 			break;
 		case 'rleScript': $("#dealID").val(currDealName);
-			document.getElementById("rleTmp").value=
-			document.getElementById("rleGrid").value;
-			$.blockUI({title:"Rule Script Editor",draggable:true,message:$("#rleScriptBox"),css:{"left":"10%","top":"20px","width":"auto","height":"auto"}});
+			dealEditorWin=window.open("_editorPop.htm?grid=rle&width=900px&height=500px",'Rule Editor',
+			'resizable=yes,menubar=0,titlebar=1,status=0,width=950,height=640');
 			break;
 		case 'reloadS': 
 		case 'reload': RUN_getDeal("",currDealName); break;
@@ -322,6 +319,16 @@ function jsonData2grid_text(v) {
 	var u = document.getElementById(tmpname);
 	v.value = u.value;
 }
+
+// e.g. ele2jsonData_text('#rleGrid')
+function ele2jsonData_text(eleName) {
+	var v=$(eleName)[0];
+	var idname=v.id.replace(/Grid$/,'');
+	var htmx = v.value.replace(/\n$/,'').split(/\n/);
+	PageTbl[idname+"_OBJ"].jsonData=htmx;
+	PageTbl[idname+"_OBJ"].nobs=htmx.length;
+}
+
 
 function load_gphBox() {
 	var vlst=PageGrid.cln.getColumns();

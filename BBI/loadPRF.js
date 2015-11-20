@@ -126,9 +126,6 @@ function createPrfGrid(idname, data, columns, options) {
 	var grid = {};
 	if($(gridId)==null) return null;
 	grid = new Slick.Grid(gridId, data, columns, options);
-//	grid.setSelectionModel(new Slick.CellSelectionModel());
-//  	grid.onCellChange.subscribe(function (e, args) { console.log("Hi"); });
-	$(gridId)[0].style.width=addPixel(grid.getCanvasNode().style.width,15);
 	grid.onSort.subscribe(function (e, args) {
 		var cols = args.sortCols;
 		data.sort(function (dataRow1, dataRow2) {
@@ -146,6 +143,9 @@ function createPrfGrid(idname, data, columns, options) {
 		grid.invalidate();
 		grid.render();
 	});
+//	grid.setSelectionModel(new Slick.CellSelectionModel());
+//  	grid.onCellChange.subscribe(function (e, args) { console.log("Hi"); });
+	$(gridId)[0].style.width=addPixel(grid.getCanvasNode().style.width,15);
 	return grid;
 }
 
