@@ -1,8 +1,9 @@
 /********************************************************************* 
-#- Version: 1.92
+#- Version: 1.93
 #- add currRun to Report indicator 
 #- add RUN_getRptList to get Archive Report list
-#- Last Modified: Ted, Tue Nov 17 17:02:24 EST 2015
+#- fix tsy_dat editable to add "editor":FloatEditor
+#- Last Modified: Fri Mar 11 10:18:50 EST 2016
 ActionFlg List:
 PMA_loginChk
 PMA_shellCmd
@@ -92,12 +93,12 @@ var cfsCol=
 {"name":"Principal","resizable":true,"sortable":false,"minWidth":80,"rerenderOnResize":false,"headerCssClass":null,"defaultSortAsc":true,"width":80,"id":"S_PO","field":"S_PO","toolTip":"Principal","precision":2,"datatype":1,"show":1,"colid":4,"colnew":0,"previousWidth":60,"formatter":roundingFormatter},
 {"name":"LoanBalance","resizable":true,"sortable":false,"minWidth":80,"rerenderOnResize":false,"headerCssClass":null,"defaultSortAsc":true,"width":80,"id":"S_RB","field":"S_RB","toolTip":"LoanBalance","precision":2,"datatype":1,"show":1,"colid":4,"colnew":0,"previousWidth":60,"formatter":roundingFormatter}];
 var xtsy_datCol= 
-[{"name":"Month","resizable":true,"sortable":false,"minWidth":70,"rerenderOnResize":false,"headerCssClass":null,"defaultSortAsc":true,"width":40,"id":"TSY_MO","field":"TSY_MO","toolTip":"Month to Maturity","cssClass":"cell-title","precision":0,"datatype":1,"show":1,"colid":1,"colnew":0,"previousWidth":60,"formatter":roundingFormatter},
-{"name":"Treasury","resizable":true,"sortable":false,"minWidth":70,"rerenderOnResize":false,"headerCssClass":null,"defaultSortAsc":true,"width":66,"id":"TSY_RATE","field":"TSY_RATE","toolTip":"Treasury Rate (%)","precision":4,"datatype":1,"show":1,"colid":3,"colnew":0,"previousWidth":60,"formatter":roundingFormatter},
-{"name":"Swap","resizable":true,"sortable":false,"minWidth":70,"rerenderOnResize":false,"headerCssClass":null,"defaultSortAsc":true,"width":66,"id":"SWP_RATE","field":"SWP_RATE","toolTip":"Swap Rate (%)","precision":4,"datatype":1,"show":1,"colid":4,"colnew":0,"previousWidth":60,"formatter":roundingFormatter}];
+[{"name":"Month","resizable":true,"sortable":false,"minWidth":70,"rerenderOnResize":false,"defaultSortAsc":true,"width":40,"id":"TSY_MO","field":"TSY_MO","toolTip":"Month to Maturity","precision":0,"datatype":1,"show":1,"colid":1,"colnew":0,"previousWidth":60,"formatter":roundingFormatter,"editor":FloatEditor},
+{"name":"Treasury","resizable":true,"sortable":false,"minWidth":70,"rerenderOnResize":false,"defaultSortAsc":true,"width":66,"id":"TSY_RATE","field":"TSY_RATE","toolTip":"Treasury Rate (%)","precision":4,"datatype":1,"show":1,"colid":3,"colnew":0,"previousWidth":60,"formatter":roundingFormatter,"editor":FloatEditor},
+{"name":"Swap","resizable":true,"sortable":false,"minWidth":70,"rerenderOnResize":false,"defaultSortAsc":true,"width":66,"id":"SWP_RATE","field":"SWP_RATE","toolTip":"Swap Rate (%)","precision":4,"datatype":1,"show":1,"colid":4,"colnew":0,"previousWidth":60,"formatter":roundingFormatter,"editor":FloatEditor}];
 var xindex_datCol= 
-[{"name":"Index Name","resizable":true,"sortable":false,"minWidth":140,"rerenderOnResize":false,"headerCssClass":null,"defaultSortAsc":true,"width":96,"id":"INDEX_DSCR","field":"INDEX_DSCR","toolTip":"Index Name","precision":0,"datatype":1,"show":1,"colid":3,"colnew":0,"previousWidth":60},
-{"name":"Index","resizable":true,"sortable":false,"minWidth":70,"rerenderOnResize":false,"headerCssClass":null,"defaultSortAsc":true,"width":66,"id":"INDEX_RATE","field":"INDEX_RATE","toolTip":"Index Rate (%)","precision":4,"datatype":1,"show":1,"colid":4,"colnew":0,"previousWidth":60,"formatter":roundingFormatter}];
+[{"name":"Index Name","resizable":true,"sortable":false,"minWidth":140,"rerenderOnResize":false,"defaultSortAsc":true,"width":96,"id":"INDEX_DSCR","field":"INDEX_DSCR","toolTip":"Index Name","precision":0,"datatype":1,"show":1,"colid":3,"colnew":0,"previousWidth":60},
+{"name":"Index","resizable":true,"sortable":false,"minWidth":70,"rerenderOnResize":false,"defaultSortAsc":true,"width":66,"id":"INDEX_RATE","field":"INDEX_RATE","toolTip":"Index Rate (%)","precision":4,"datatype":1,"show":1,"colid":4,"colnew":0,"previousWidth":60,"formatter":roundingFormatter,"editor":FloatEditor}];
 
 function asmDspSetup(dealType) {
 	if(dealType!=5) {

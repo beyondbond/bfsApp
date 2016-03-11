@@ -116,12 +116,12 @@ function rvmMenuSetup(actN) {
 		case 'rptOpt': $.blockUI({message:$("#rptOptBox"),css:{"left":"10%","top":"100px","width":"auto","height":"auto"}});
 			break;
 		case 'gnrDeal': $("#dealID").val(currDealName);
-			dealEditorWin=window.open("_editorPop.htm?grid=gnr&width=600px&height=400px",'Deal Editor',
-			'resizable=yes,menubar=0,titlebar=1,status=0,width=650,height=540');
+			dealEditorWin=window.open("_editorPop.htm?grid=gnr&width=800px&height=600px",'Deal Editor',
+			'resizable=yes,menubar=0,titlebar=1,status=0,width=850,height=700');
 			break;
 		case 'rleScript': $("#dealID").val(currDealName);
-			dealEditorWin=window.open("_editorPop.htm?grid=rle&width=900px&height=500px",'Rule Editor',
-			'resizable=yes,menubar=0,titlebar=1,status=0,width=950,height=640');
+			dealEditorWin=window.open("_editorPop.htm?grid=rle&width=800px&height=600px",'Rule Editor',
+			'resizable=yes,menubar=0,titlebar=1,status=0,width=850,height=700');
 			break;
 		case 'reloadS': 
 		case 'reload': RUN_getDeal("",currDealName); break;
